@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>商家管理系统</title>
+    <style>
+        .nav-menu {
+            background-color: #f8f9fa;
+            padding: 15px;
+        }
+        .content-area {
+            margin: 20px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .search-box {
+            margin: 10px 0;
+        }
+        .action-buttons {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+
+    <div class="nav-menu">
+        <button onclick="showTab('showcase')">陈列柜</button>
+        <button onclick="showTab('orders')">我的订单</button>
+        <button onclick="showTab('comments')">用户评论</button>
+    </div>
+
+    <!-- 陈列柜 -->
+    <div id="showcase" class="tab-content">
+        <div class="content-area">
+            <h2>商品管理</h2>
+            <div class="action-buttons">
+                <button onclick="addProduct()">添加新商品</button>
+                <button onclick="modifyProduct()">修改商品</button>
+                <button onclick="removeProduct()">下架商品</button>
+            </div>
+            <div class="search-box">
+                <input type="number" placeholder="最小库存数量">
+                <input type="number" placeholder="最大库存数量">
+                <input type="date" placeholder="上架时间">
+                <input type="number" placeholder="最低价格">
+                <input type="number" placeholder="最高价格">
+                <button onclick="searchProducts()">搜索</button>
+            </div>
+            <table id="products-table">
+                <tr>
+                    <th>商品ID</th>
+                    <th>商品名称</th>
+                    <th>描述</th>
+                    <th>单价</th>
+                    <th>库存</th>
+                    <th>上架时间</th>
+                    <th>操作</th>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- 订单管理 -->
+    <div id="orders" class="tab-content">
+        <div class="content-area">
+            <h2>订单管理</h2>
+            <div class="search-box">
+                <input type="date" placeholder="订单创建时间">
+                <input type="text" placeholder="物流追踪号">
+                <input type="text" placeholder="商品ID">
+                <button onclick="searchOrders()">搜索</button>
+            </div>
+            <table id="orders-table">
+                <tr>
+                    <th>订单ID</th>
+                    <th>创建时间</th>
+                    <th>订单状态</th>
+                    <th>物流号</th>
+                    <th>承运人</th>
+                    <th>操作</th>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- 用户评论 -->
+    <div id="comments" class="tab-content">
+        <div class="content-area">
+            <h2>用户评论管理</h2>
+            <div class="search-box">
+                <input type="text" placeholder="商品名称">
+                <button onclick="searchComments()">搜索评论</button>
+            </div>
+            <table id="comments-table">
+                <tr>
+                    <th>评论ID</th>
+                    <th>商品名称</th>
+                    <th>用户名</th>
+                    <th>评分</th>
+                    <th>评论内容</th>
+                    <th>评论时间</th>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // 默认显示陈列柜
+        showTab('showcase');
+    </script>
+</body>
+</html>
+
