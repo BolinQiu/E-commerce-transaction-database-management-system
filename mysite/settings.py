@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "user_account",
+    "on_sale",
     "backend_manage",
 ]
 
@@ -118,11 +118,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+# TIME_ZONE = 'UTC'            #修改时区，datetime.datetime.now()获取的是UTC时间            
+TIME_ZONE = 'Asia/Shanghai'    #修改时区，datetime.datetime.now()获取的是当前时区的时间
+#datetime.date.time.utcnow()永远都是获取UTC时间
+# USE_TZ = True                #数据库自动创建的时间为UTC时间
+USE_TZ = False                 #数据库自动创建的时间为当前时区时间
 
 USE_I18N = True
-
-USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
