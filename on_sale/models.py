@@ -6,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class User(models.Model):
     user_id = models.AutoField(primary_key=True)
     # username = models.CharField(max_length=50, unique=True, verbose_name='用户名')
-    username = models.CharField(max_length=50, unique=False, verbose_name='用户名',null=False)
+    username = models.CharField(max_length=50, unique=True, verbose_name='用户名',null=False)
     password = models.CharField(max_length=255, verbose_name='密码',null=False)
     address = models.CharField(max_length=255, verbose_name='寄件地址',null=False)
     phone = models.CharField(max_length=20, verbose_name='电话号码',null=False)
