@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class BackendmanagementConfig(AppConfig):
+class backend_manageConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "backendmanagement"
+    name = "backend_manage"
