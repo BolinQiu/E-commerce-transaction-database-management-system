@@ -1,0 +1,40 @@
+<!-- backend_manage/templates/backend_manage/list_orders.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}订单管理{% endblock %}
+
+{% block content %}
+    <h2>订单管理</h2>
+    <a href="{% url 'assign_logistics' %}">分配物流</a>
+    
+    <h3>查询订单</h3>
+    <form method="get">
+        {{ form.as_p }}
+        <button type="submit">搜索</button>
+    </form>
+    
+    <h3>订单列表</h3>
+    <table>
+        <tr>
+            <th>订单ID</th>
+            <th>创建时间</th>
+            <th>订单状态</th>
+            <th>物流追踪号</th>
+            <th>承运人</th>
+            <th>操作</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.0 }}</td>
+            <td>{{ order.1 }}</td>
+            <td>{{ order.2 }}</td>
+            <td>{{ order.3 }}</td>
+            <td>{{ order.4 }}</td>
+            <td class="action-buttons">
+                <a href="{% url 'track_order' order.0 %}">查看物流</a>
+                <a href="{% url 'query_orders_by_product' product_id=order.0 %}">按商品查询</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

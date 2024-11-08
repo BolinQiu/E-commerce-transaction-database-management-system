@@ -1,0 +1,14 @@
+<!-- backend_manage/templates/backend_manage/assign_logistics.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}分配物流{% endblock %}
+
+{% block content %}
+    <h2>分配物流承运人</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">分配物流</button>
+    </form>
+    <a href="{% url 'list_orders' %}">返回订单列表</a>
+{% endblock %}

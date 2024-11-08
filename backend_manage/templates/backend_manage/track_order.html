@@ -1,0 +1,14 @@
+<!-- backend_manage/templates/backend_manage/track_order.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}订单物流信息{% endblock %}
+
+{% block content %}
+    <h2>订单物流信息</h2>
+    <p><strong>订单ID：</strong> {{ order_id }}</p>
+    <p><strong>承运人：</strong> {{ carrier }}</p>
+    <p><strong>追踪号码：</strong> {{ tracking_number }}</p>
+    <p><strong>物流状态：</strong> {{ status }}</p>
+    <p><strong>更新时间：</strong> {{ updated_at }}</p>
+    <a href="{% url 'list_orders' %}">返回订单列表</a>
+{% endblock %}

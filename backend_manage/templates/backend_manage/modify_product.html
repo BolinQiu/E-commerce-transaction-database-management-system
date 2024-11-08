@@ -1,0 +1,14 @@
+<!-- modify_product.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}修改商品信息{% endblock %}
+
+{% block content %}
+    <h2>修改商品信息</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">提交修改</button>
+    </form>
+    <a href="{% url 'list_products' %}">返回商品列表</a>
+{% endblock %}

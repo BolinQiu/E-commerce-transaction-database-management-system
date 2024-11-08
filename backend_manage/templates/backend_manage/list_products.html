@@ -1,0 +1,43 @@
+<!-- backend_manage/templates/backend_manage/list_products.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}商品管理{% endblock %}
+
+{% block content %}
+    <h2>商品管理</h2>
+    <a href="{% url 'add_product' %}">添加新商品</a> | 
+    <a href="{% url 'add_stock' %}">添加库存</a>
+    
+    <h3>查询商品</h3>
+    <form method="get">
+        {{ form.as_p }}
+        <button type="submit">搜索</button>
+    </form>
+    
+    <h3>商品列表</h3>
+    <table>
+        <tr>
+            <th>商品ID</th>
+            <th>商品名称</th>
+            <th>描述</th>
+            <th>单价</th>
+            <th>库存</th>
+            <th>上架时间</th>
+            <th>操作</th>
+        </tr>
+        {% for product in products %}
+        <tr>
+            <td>{{ product.0 }}</td>
+            <td>{{ product.1 }}</td>
+            <td>{{ product.2 }}</td>
+            <td>{{ product.3 }}</td>
+            <td>{{ product.4 }}</td>
+            <td>{{ product.5 }}</td>
+            <td class="action-buttons">
+                <a href="{% url 'modify_product' %}?product_id={{ product.0 }}">修改</a>
+                <a href="{% url 'delete_product' product.0 %}">删除</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
