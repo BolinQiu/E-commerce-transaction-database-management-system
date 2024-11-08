@@ -1,0 +1,36 @@
+<!-- backend_manage/templates/backend_manage/list_reviews.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}用户评论管理{% endblock %}
+
+{% block content %}
+    <h2>用户评论管理</h2>
+    
+    <h3>查询评论</h3>
+    <form method="get">
+        {{ form.as_p }}
+        <button type="submit">搜索</button>
+    </form>
+    
+    <h3>评论列表</h3>
+    <table>
+        <tr>
+            <th>评论ID</th>
+            <th>商品名称</th>
+            <th>用户名</th>
+            <th>评分</th>
+            <th>评论内容</th>
+            <th>评论时间</th>
+        </tr>
+        {% for review in reviews %}
+        <tr>
+            <td>{{ review.0 }}</td>
+            <td>{{ review.1 }}</td>
+            <td>{{ review.2 }}</td>
+            <td>{{ review.3 }}</td>
+            <td>{{ review.4 }}</td>
+            <td>{{ review.5 }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

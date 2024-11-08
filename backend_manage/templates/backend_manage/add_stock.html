@@ -1,0 +1,14 @@
+<!-- backend_manage/templates/backend_manage/add_stock.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}添加库存{% endblock %}
+
+{% block content %}
+    <h2>添加库存</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">添加库存</button>
+    </form>
+    <a href="{% url 'list_products' %}">返回商品列表</a>
+{% endblock %}

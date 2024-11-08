@@ -1,0 +1,89 @@
+<!-- backend_manage/templates/backend_manage/base.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}后台管理系统{% endblock %}</title>
+    <style>
+        /* 基本样式 */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        /* 固定导航栏 */
+        .nav-menu {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: #343a40;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .nav-menu a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-menu a.active {
+            text-decoration: underline;
+        }
+        /* 内容区域，避免被导航栏遮挡 */
+        .content-area {
+            margin-top: 60px; /* 导航栏高度 */
+            padding: 20px;
+        }
+        /* 消息提示 */
+        .messages {
+            list-style-type: none;
+            padding: 0;
+        }
+        .messages li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .messages li.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .messages li.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-menu">
+        <a href="{% url 'list_products' %}" class="{% if request.path == '/backend/products/' %}active{% endif %}">陈列柜</a>
+        <a href="{% url 'list_orders' %}" class="{% if request.path == '/backend/orders/' %}active{% endif %}">我的订单</a>
+        <a href="{% url 'list_reviews' %}" class="{% if request.path == '/backend/reviews/' %}active{% endif %}">用户评论</a>
+        <a href="{% url 'manage_dashboard' %}">返回主界面</a>
+    </div>
+    
+    <div class="content-area">
+        <!-- 消息显示 -->
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        
+        <!-- 页面内容 -->
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>
+
+<!-- base.html 中的消息显示区域 -->
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
