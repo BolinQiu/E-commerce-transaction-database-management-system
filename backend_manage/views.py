@@ -1,3 +1,5 @@
+import random
+import uuid
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.contrib import messages
@@ -134,17 +136,19 @@ def add_stock(request):
     return render(request, 'backend_manage/add_stock.html', {'form': form})
 
 def delete_product(request, product_id):
-    """
-    下架（删除）商品
-    """
     with connection.cursor() as cursor:
-        sql = "DELETE FROM products WHERE product_id = %s"
-        cursor.execute(sql, [product_id])
+        # 先删除关联的 order_items
+        cursor.execute("DELETE FROM order_items WHERE product_id = %s", [product_id])
+        
+        # 然后删除商品本身
+        cursor.execute("DELETE FROM products WHERE product_id = %s", [product_id])
+        
         if cursor.rowcount == 0:
             messages.error(request, "未找到对应的商品ID。")
         else:
-            messages.success(request, "商品已删除。")
+            messages.success(request, "商品已下架。")
     return redirect('list_products')
+
 
 # ===== 我的订单相关视图 =====
 
@@ -153,10 +157,16 @@ def list_orders(request):
     列出所有订单或根据查询条件过滤订单
     """
     form = QueryOrderForm(request.GET or None)
-    query = ""
+    base_query = """
+        SELECT DISTINCT o.order_id, o.created_at, o.status, l.tracking_number, l.carrier
+        FROM orders o
+        LEFT JOIN logistics l ON o.order_id = l.order_id
+    """
+    join_clause = ""
     params = []
+    conditions = []
+
     if form.is_valid():
-        conditions = []
         if form.cleaned_data.get('start_date'):
             conditions.append("o.created_at >= %s")
             params.append(form.cleaned_data['start_date'])
@@ -166,61 +176,78 @@ def list_orders(request):
         if form.cleaned_data.get('tracking_number'):
             conditions.append("l.tracking_number = %s")
             params.append(form.cleaned_data['tracking_number'])
-        if conditions:
-            query = "WHERE " + " AND ".join(conditions)
+        if form.cleaned_data.get('product_name'):
+            # 如果输入了商品名称，则需要 JOIN `order_items` 和 `products`
+            join_clause = """
+                JOIN order_items oi ON o.order_id = oi.order_id
+                JOIN products p ON oi.product_id = p.product_id
+            """
+            conditions.append("p.product_name LIKE %s")
+            params.append(f"%{form.cleaned_data['product_name']}%")
+
+    # 构建最终的 SQL 查询
+    query = base_query + join_clause
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
     with connection.cursor() as cursor:
-        sql = f"""
-            SELECT o.order_id, o.created_at, o.status, l.tracking_number, l.carrier
-            FROM orders o
-            LEFT JOIN logistics l ON o.order_id = l.order_id
-            {query}
-        """
-        cursor.execute(sql, params)
+        cursor.execute(query, params)
         orders = cursor.fetchall()
+
     context = {
         'orders': orders,
         'form': form,
     }
     return render(request, 'backend_manage/list_orders.html', context)
 
+
+def generate_tracking_number(order_id):
+    # 使用 order_id 作为随机数种子，以确保生成的追踪号是唯一且可复现的
+    random.seed(order_id)
+    tracking_number = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
+    return tracking_number
+
 def assign_logistics(request):
     """
     为订单分配物流承运人和追踪号码
     """
+    order_id = request.GET.get('order_id')
     if request.method == 'POST':
         form = AssignLogisticsForm(request.POST)
         if form.is_valid():
-            order_id = form.cleaned_data['order_id']
             carrier = form.cleaned_data['carrier']
-            tracking_number = form.cleaned_data['tracking_number']
+            tracking_number = generate_tracking_number(order_id)
             with connection.cursor() as cursor:
-                # 检查订单是否存在且状态为 'shipped'
+                # 检查订单是否存在且状态为 'pending'
                 check_sql = "SELECT status FROM orders WHERE order_id = %s"
                 cursor.execute(check_sql, [order_id])
                 result = cursor.fetchone()
                 if not result:
                     messages.error(request, "未找到对应的订单ID。")
                     return redirect('list_orders')
+                
                 status = result[0]
-                if status != 'shipped':
-                    messages.error(request, "只有已发货的订单可以分配物流。")
+                if status != 'pending':
+                    messages.error(request, "只有待处理的订单可以分配物流信息。")
                     return redirect('list_orders')
-                # 插入或更新物流信息
-                upsert_sql = """
+                
+                # 更新订单状态为 'shipped' 并插入物流信息
+                update_order_sql = "UPDATE orders SET status = 'delivered' WHERE order_id = %s"
+                cursor.execute(update_order_sql, [order_id])
+                
+                insert_logistics_sql = """
                     INSERT INTO logistics (order_id, carrier, tracking_number, status, updated_at)
-                    VALUES (%s, %s, %s, 'shipping', NOW())
-                    ON DUPLICATE KEY UPDATE 
-                        carrier = VALUES(carrier), 
-                        tracking_number = VALUES(tracking_number), 
-                        status = VALUES(status), 
-                        updated_at = VALUES(updated_at)
+                    VALUES (%s, %s, %s, 'delivered', NOW())
                 """
-                cursor.execute(upsert_sql, [order_id, carrier, tracking_number])
-                messages.success(request, "物流信息已更新。")
+                cursor.execute(insert_logistics_sql, [order_id, carrier, tracking_number])
+                
+                messages.success(request, "物流信息已分配并生成物流记录。")
             return redirect('list_orders')
     else:
-        form = AssignLogisticsForm()
+        initial_data = {'order_id': order_id, 'tracking_number': generate_tracking_number(order_id)}
+        form = AssignLogisticsForm(initial=initial_data)
     return render(request, 'backend_manage/assign_logistics.html', {'form': form})
+
 
 def track_order(request, order_id):
     """
@@ -248,7 +275,7 @@ def track_order(request, order_id):
 
 def query_orders_by_product(request, product_id):
     """
-    查询某个商品ID对应的订单，以跟踪商品的流向
+    查询某个商品对应的订单，以跟踪商品的流向
     """
     with connection.cursor() as cursor:
         sql = """
@@ -273,19 +300,27 @@ def list_reviews(request):
     """
     form = QueryReviewForm(request.GET or None)
     reviews = []
-    if form.is_valid():
-        product_name = form.cleaned_data.get('product_name')
-        if product_name:
-            with connection.cursor() as cursor:
-                sql = """
-                    SELECT r.review_id, p.product_name, u.username, r.rating, r.comment, r.created_at
-                    FROM reviews r
-                    JOIN products p ON r.product_id = p.product_id
-                    JOIN users u ON r.user_id = u.user_id
-                    WHERE p.product_name LIKE %s
-                """
-                cursor.execute(sql, [f"%{product_name}%"])
-                reviews = cursor.fetchall()
+
+    # 构建 SQL 查询和参数
+    sql = """
+        SELECT r.review_id, p.product_name, u.username, r.rating, r.comment, r.created_at
+        FROM reviews r
+        JOIN products p ON r.product_id = p.product_id
+        JOIN users u ON r.user_id = u.user_id
+    """
+    params = []
+
+    # 如果表单有效且商品名称不为空，添加筛选条件
+    if form.is_valid() and form.cleaned_data.get('product_name'):
+        product_name = form.cleaned_data['product_name']
+        sql += " WHERE p.product_name LIKE %s"
+        params.append(f"%{product_name}%")
+
+    # 执行查询
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        reviews = cursor.fetchall()
+
     context = {
         'reviews': reviews,
         'form': form,

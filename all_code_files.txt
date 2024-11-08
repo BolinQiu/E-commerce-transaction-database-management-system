@@ -1,0 +1,792 @@
+===== ./backend_manage\admin.py =====
+from django.contrib import admin
+
+# Register your models here.
+
+
+===== ./backend_manage\apps.py =====
+from django.apps import AppConfig
+
+
+class backend_manageConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "backend_manage"
+
+
+===== ./backend_manage\forms.py =====
+# backend_manage/forms.py
+
+from django import forms
+
+class ModifyProductForm(forms.Form):
+    # product_id = forms.IntegerField(label='商品ID')
+    product_description = forms.CharField(widget=forms.Textarea, required=False, label='商品描述')
+    price = forms.DecimalField(max_digits=10, decimal_places=2, required=False, label='单价')
+
+class AddProductForm(forms.Form):
+    product_name = forms.CharField(max_length=100, label='商品名称')
+    product_description = forms.CharField(widget=forms.Textarea, required=False, label='商品描述')
+    price = forms.DecimalField(max_digits=10, decimal_places=2, label='单价')
+    stock = forms.IntegerField(label='库存数量')
+
+class AddStockForm(forms.Form):
+    product_id = forms.IntegerField(label='商品ID')
+    additional_stock = forms.IntegerField(label='增加库存数量')
+
+class AssignLogisticsForm(forms.Form):
+    # order_id = forms.IntegerField(label='订单ID')
+    carrier = forms.CharField(max_length=50, label='承运人')
+    tracking_number = forms.CharField(max_length=100, label='追踪号码')
+
+class QueryProductForm(forms.Form):
+    min_stock = forms.IntegerField(required=False, label='最小库存数量')
+    max_stock = forms.IntegerField(required=False, label='最大库存数量')
+    start_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}), label='上架开始时间')
+    end_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}), label='上架结束时间')
+    min_price = forms.DecimalField(max_digits=10, decimal_places=2, required=False, label='最低价格')
+    max_price = forms.DecimalField(max_digits=10, decimal_places=2, required=False, label='最高价格')
+
+class QueryOrderForm(forms.Form):
+    start_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}), label='开始时间')
+    end_date = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}), label='结束时间')
+    tracking_number = forms.CharField(max_length=100, required=False, label='物流追踪号码')
+    product_name = forms.CharField(max_length=100, required=False, label='商品名称')
+
+class QueryReviewForm(forms.Form):
+    product_name = forms.CharField(max_length=100, required=True, label='商品名称')
+
+
+===== ./backend_manage\models.py =====
+from django.db import models
+
+# Create your models here.
+
+
+===== ./backend_manage\tests.py =====
+from django.test import TestCase
+
+# Create your tests here.
+
+
+===== ./backend_manage\urls.py =====
+# backend_manage/urls.py
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.manage_dashboard, name='manage_dashboard'),
+    
+    # 陈列柜
+    path('products/', views.list_products, name='list_products'),
+    path('products/modify/', views.modify_product, name='modify_product'),
+    path('products/add/', views.add_product, name='add_product'),
+    path('products/add_stock/', views.add_stock, name='add_stock'),
+    path('products/delete/<int:product_id>/', views.delete_product, name='delete_product'),
+    
+    # 我的订单
+    path('orders/', views.list_orders, name='list_orders'),
+    path('orders/assign_logistics/', views.assign_logistics, name='assign_logistics'),
+    path('orders/track/<int:order_id>/', views.track_order, name='track_order'),
+    path('orders/query_by_product/<int:product_id>/', views.query_orders_by_product, name='query_orders_by_product'),
+    
+    # 用户评论
+    path('reviews/', views.list_reviews, name='list_reviews'),
+]
+
+
+===== ./backend_manage\views.py =====
+import random
+import uuid
+from django.shortcuts import render, redirect
+from django.db import connection
+from django.contrib import messages
+from .forms import (
+    ModifyProductForm,
+    AddProductForm,
+    AddStockForm,
+    AssignLogisticsForm,
+    QueryProductForm,
+    QueryOrderForm,
+    QueryReviewForm,
+)
+from django.http import JsonResponse
+import json
+
+def manage_dashboard(request):
+    """
+    管理后台主界面
+    """
+    return render(request, 'backend_manage/manage_dashboard.html')
+
+# ===== 陈列柜相关视图 =====
+
+def list_products(request):
+    """
+    列出所有商品或根据查询条件过滤商品
+    """
+    form = QueryProductForm(request.GET or None)
+    query = ""
+    params = []
+    if form.is_valid():
+        conditions = []
+        if form.cleaned_data.get('min_stock') is not None:
+            conditions.append("stock >= %s")
+            params.append(form.cleaned_data['min_stock'])
+        if form.cleaned_data.get('max_stock') is not None:
+            conditions.append("stock <= %s")
+            params.append(form.cleaned_data['max_stock'])
+        if form.cleaned_data.get('start_date'):
+            conditions.append("created_at >= %s")
+            params.append(form.cleaned_data['start_date'])
+        if form.cleaned_data.get('end_date'):
+            conditions.append("created_at <= %s")
+            params.append(form.cleaned_data['end_date'])
+        if form.cleaned_data.get('min_price') is not None:
+            conditions.append("price >= %s")
+            params.append(form.cleaned_data['min_price'])
+        if form.cleaned_data.get('max_price') is not None:
+            conditions.append("price <= %s")
+            params.append(form.cleaned_data['max_price'])
+        if conditions:
+            query = "WHERE " + " AND ".join(conditions)
+    with connection.cursor() as cursor:
+        sql = f"SELECT product_id, product_name, product_description, price, stock, created_at FROM products {query}"
+        cursor.execute(sql, params)
+        products = cursor.fetchall()
+    context = {
+        'products': products,
+        'form': form,
+    }
+    return render(request, 'backend_manage/list_products.html', context)
+
+def modify_product(request):
+    """
+    修改商品信息（描述、单价）
+    """
+    product_id = request.GET.get('product_id')
+    if request.method == 'POST':
+        form = ModifyProductForm(request.POST)
+        if form.is_valid():
+            product_description = form.cleaned_data.get('product_description')
+            price = form.cleaned_data.get('price')
+            with connection.cursor() as cursor:
+                if product_description and price:
+                    sql = "UPDATE products SET product_description = %s, price = %s WHERE product_id = %s"
+                    cursor.execute(sql, [product_description, price, product_id])
+                elif product_description:
+                    sql = "UPDATE products SET product_description = %s WHERE product_id = %s"
+                    cursor.execute(sql, [product_description, product_id])
+                elif price:
+                    sql = "UPDATE products SET price = %s WHERE product_id = %s"
+                    cursor.execute(sql, [price, product_id])
+                else:
+                    messages.error(request, "没有提供任何修改内容。")
+                    return redirect('list_products')
+                messages.success(request, "商品信息已更新。")
+            return redirect('list_products')
+    else:
+        form = ModifyProductForm()
+    return render(request, 'backend_manage/modify_product.html', {'form': form})
+
+def add_product(request):
+    """
+    添加新商品
+    """
+    if request.method == 'POST':
+        form = AddProductForm(request.POST)
+        if form.is_valid():
+            product_name = form.cleaned_data['product_name']
+            product_description = form.cleaned_data.get('product_description', '')
+            price = form.cleaned_data['price']
+            stock = form.cleaned_data['stock']
+            with connection.cursor() as cursor:
+                sql = """
+                    INSERT INTO products (product_name, product_description, price, stock, created_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                """
+                cursor.execute(sql, [product_name, product_description, price, stock])
+                messages.success(request, "新商品已添加。")
+            return redirect('list_products')
+    else:
+        form = AddProductForm()
+    return render(request, 'backend_manage/add_product.html', {'form': form})
+
+def add_stock(request):
+    """
+    为现有商品添加库存
+    """
+    if request.method == 'POST':
+        form = AddStockForm(request.POST)
+        if form.is_valid():
+            product_id = form.cleaned_data['product_id']
+            additional_stock = form.cleaned_data['additional_stock']
+            with connection.cursor() as cursor:
+                sql = "UPDATE products SET stock = stock + %s WHERE product_id = %s"
+                cursor.execute(sql, [additional_stock, product_id])
+                if cursor.rowcount == 0:
+                    messages.error(request, "未找到对应的商品ID。")
+                else:
+                    messages.success(request, "库存已更新。")
+            return redirect('list_products')
+    else:
+        form = AddStockForm()
+    return render(request, 'backend_manage/add_stock.html', {'form': form})
+
+def delete_product(request, product_id):
+    with connection.cursor() as cursor:
+        # 先删除关联的 order_items
+        cursor.execute("DELETE FROM order_items WHERE product_id = %s", [product_id])
+        
+        # 然后删除商品本身
+        cursor.execute("DELETE FROM products WHERE product_id = %s", [product_id])
+        
+        if cursor.rowcount == 0:
+            messages.error(request, "未找到对应的商品ID。")
+        else:
+            messages.success(request, "商品已下架。")
+    return redirect('list_products')
+
+
+# ===== 我的订单相关视图 =====
+
+def list_orders(request):
+    """
+    列出所有订单或根据查询条件过滤订单
+    """
+    form = QueryOrderForm(request.GET or None)
+    base_query = """
+        SELECT DISTINCT o.order_id, o.created_at, o.status, l.tracking_number, l.carrier
+        FROM orders o
+        LEFT JOIN logistics l ON o.order_id = l.order_id
+    """
+    join_clause = ""
+    params = []
+    conditions = []
+
+    if form.is_valid():
+        if form.cleaned_data.get('start_date'):
+            conditions.append("o.created_at >= %s")
+            params.append(form.cleaned_data['start_date'])
+        if form.cleaned_data.get('end_date'):
+            conditions.append("o.created_at <= %s")
+            params.append(form.cleaned_data['end_date'])
+        if form.cleaned_data.get('tracking_number'):
+            conditions.append("l.tracking_number = %s")
+            params.append(form.cleaned_data['tracking_number'])
+        if form.cleaned_data.get('product_name'):
+            # 如果输入了商品名称，则需要 JOIN `order_items` 和 `products`
+            join_clause = """
+                JOIN order_items oi ON o.order_id = oi.order_id
+                JOIN products p ON oi.product_id = p.product_id
+            """
+            conditions.append("p.product_name LIKE %s")
+            params.append(f"%{form.cleaned_data['product_name']}%")
+
+    # 构建最终的 SQL 查询
+    query = base_query + join_clause
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    with connection.cursor() as cursor:
+        cursor.execute(query, params)
+        orders = cursor.fetchall()
+
+    context = {
+        'orders': orders,
+        'form': form,
+    }
+    return render(request, 'backend_manage/list_orders.html', context)
+
+
+def generate_tracking_number(order_id):
+    # 使用 order_id 作为随机数种子，以确保生成的追踪号是唯一且可复现的
+    random.seed(order_id)
+    tracking_number = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
+    return tracking_number
+
+def assign_logistics(request):
+    """
+    为订单分配物流承运人和追踪号码
+    """
+    order_id = request.GET.get('order_id')
+    if request.method == 'POST':
+        form = AssignLogisticsForm(request.POST)
+        if form.is_valid():
+            carrier = form.cleaned_data['carrier']
+            tracking_number = generate_tracking_number(order_id)
+            with connection.cursor() as cursor:
+                # 检查订单是否存在且状态为 'pending'
+                check_sql = "SELECT status FROM orders WHERE order_id = %s"
+                cursor.execute(check_sql, [order_id])
+                result = cursor.fetchone()
+                if not result:
+                    messages.error(request, "未找到对应的订单ID。")
+                    return redirect('list_orders')
+                
+                status = result[0]
+                if status != 'pending':
+                    messages.error(request, "只有待处理的订单可以分配物流信息。")
+                    return redirect('list_orders')
+                
+                # 更新订单状态为 'shipped' 并插入物流信息
+                update_order_sql = "UPDATE orders SET status = 'delivered' WHERE order_id = %s"
+                cursor.execute(update_order_sql, [order_id])
+                
+                insert_logistics_sql = """
+                    INSERT INTO logistics (order_id, carrier, tracking_number, status, updated_at)
+                    VALUES (%s, %s, %s, 'delivered', NOW())
+                """
+                cursor.execute(insert_logistics_sql, [order_id, carrier, tracking_number])
+                
+                messages.success(request, "物流信息已分配并生成物流记录。")
+            return redirect('list_orders')
+    else:
+        initial_data = {'order_id': order_id, 'tracking_number': generate_tracking_number(order_id)}
+        form = AssignLogisticsForm(initial=initial_data)
+    return render(request, 'backend_manage/assign_logistics.html', {'form': form})
+
+
+def track_order(request, order_id):
+    """
+    查看订单的物流信息
+    """
+    with connection.cursor() as cursor:
+        sql = """
+            SELECT l.carrier, l.tracking_number, l.status, l.updated_at
+            FROM logistics l
+            WHERE l.order_id = %s
+        """
+        cursor.execute(sql, [order_id])
+        logistics = cursor.fetchone()
+    if not logistics:
+        messages.error(request, "未找到对应的物流信息。")
+        return redirect('list_orders')
+    context = {
+        'order_id': order_id,
+        'carrier': logistics[0],
+        'tracking_number': logistics[1],
+        'status': logistics[2],
+        'updated_at': logistics[3],
+    }
+    return render(request, 'backend_manage/track_order.html', context)
+
+def query_orders_by_product(request, product_id):
+    """
+    查询某个商品对应的订单，以跟踪商品的流向
+    """
+    with connection.cursor() as cursor:
+        sql = """
+            SELECT o.order_id, o.created_at, o.status
+            FROM orders o
+            JOIN order_items oi ON o.order_id = oi.order_id
+            WHERE oi.product_id = %s
+        """
+        cursor.execute(sql, [product_id])
+        orders = cursor.fetchall()
+    context = {
+        'orders': orders,
+        'product_id': product_id,
+    }
+    return render(request, 'backend_manage/query_orders_by_product.html', context)
+
+# ===== 用户评论相关视图 =====
+
+def list_reviews(request):
+    """
+    列出所有用户评论或根据商品名称查询评论
+    """
+    form = QueryReviewForm(request.GET or None)
+    reviews = []
+    if form.is_valid():
+        product_name = form.cleaned_data.get('product_name')
+        if product_name:
+            with connection.cursor() as cursor:
+                sql = """
+                    SELECT r.review_id, p.product_name, u.username, r.rating, r.comment, r.created_at
+                    FROM reviews r
+                    JOIN products p ON r.product_id = p.product_id
+                    JOIN users u ON r.user_id = u.user_id
+                    WHERE p.product_name LIKE %s
+                """
+                cursor.execute(sql, [f"%{product_name}%"])
+                reviews = cursor.fetchall()
+    context = {
+        'reviews': reviews,
+        'form': form,
+    }
+    return render(request, 'backend_manage/list_reviews.html', context)
+
+
+===== ./backend_manage\__init__.py =====
+
+
+===== ./backend_manage\migrations\__init__.py =====
+
+
+===== ./backend_manage\templates\backend_manage\add_product.html =====
+<!-- backend_manage/templates/backend_manage/add_product.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}添加新商品{% endblock %}
+
+{% block content %}
+    <h2>添加新商品</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">添加商品</button>
+    </form>
+    <a href="{% url 'list_products' %}">返回商品列表</a>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\add_stock.html =====
+<!-- backend_manage/templates/backend_manage/add_stock.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}添加库存{% endblock %}
+
+{% block content %}
+    <h2>添加库存</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">添加库存</button>
+    </form>
+    <a href="{% url 'list_products' %}">返回商品列表</a>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\assign_logistics.html =====
+<!-- backend_manage/templates/backend_manage/assign_logistics.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}分配物流{% endblock %}
+
+{% block content %}
+    <h2>分配物流承运人</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">分配物流</button>
+    </form>
+    <a href="{% url 'list_orders' %}">返回订单列表</a>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\base.html =====
+<!-- backend_manage/templates/backend_manage/base.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}后台管理系统{% endblock %}</title>
+    <style>
+        /* 基本样式 */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        /* 固定导航栏 */
+        .nav-menu {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: #343a40;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .nav-menu a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-menu a.active {
+            text-decoration: underline;
+        }
+        /* 内容区域，避免被导航栏遮挡 */
+        .content-area {
+            margin-top: 60px; /* 导航栏高度 */
+            padding: 20px;
+        }
+        /* 消息提示 */
+        .messages {
+            list-style-type: none;
+            padding: 0;
+        }
+        .messages li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .messages li.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .messages li.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-menu">
+        <a href="{% url 'list_products' %}" class="{% if request.path == '/backend/products/' %}active{% endif %}">陈列柜</a>
+        <a href="{% url 'list_orders' %}" class="{% if request.path == '/backend/orders/' %}active{% endif %}">我的订单</a>
+        <a href="{% url 'list_reviews' %}" class="{% if request.path == '/backend/reviews/' %}active{% endif %}">用户评论</a>
+        <a href="{% url 'manage_dashboard' %}">返回主界面</a>
+    </div>
+    
+    <div class="content-area">
+        <!-- 消息显示 -->
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        
+        <!-- 页面内容 -->
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>
+
+<!-- base.html 中的消息显示区域 -->
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+
+===== ./backend_manage\templates\backend_manage\list_orders.html =====
+<!-- backend_manage/templates/backend_manage/list_orders.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}订单管理{% endblock %}
+
+{% block content %}    
+    <h2>查询订单</h2>
+    <form method="get">
+        {{ form.as_p }}
+        <button type="submit">搜索</button>
+    </form>
+    
+    <h3>订单列表</h3>
+    <table>
+        <tr>
+            <th>订单ID</th>
+            <th>创建时间</th>
+            <th>订单状态</th>
+            <th>物流追踪号</th>
+            <th>承运人</th>
+            <th>操作</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.0 }}</td>
+            <td>{{ order.1 }}</td>
+            <td>{{ order.2 }}</td>
+            <td>{{ order.3 }}</td>
+            <td>{{ order.4 }}</td>
+            <td class="action-buttons">
+                <a href="{% url 'track_order' order.0 %}">查看物流</a>
+                {% if order.2 == 'pending' %}  <!-- 只在订单状态为 'pending' 时显示 -->
+                    <a href="{% url 'assign_logistics' %}?order_id={{ order.0 }}">分配物流</a>
+                {% endif %}
+            </td>
+            
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\list_products.html =====
+<!-- backend_manage/templates/backend_manage/list_products.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}商品管理{% endblock %}
+
+{% block content %}
+    <h2>商品管理</h2>
+    <a href="{% url 'add_product' %}">添加新商品</a> | 
+    <a href="{% url 'add_stock' %}">添加库存</a>
+    
+    <h3>查询商品</h3>
+    <form method="get">
+        {{ form.as_p }}
+        <button type="submit">搜索</button>
+    </form>
+    
+    <h3>商品列表</h3>
+    <table>
+        <tr>
+            <th>商品ID</th>
+            <th>商品名称</th>
+            <th>描述</th>
+            <th>单价</th>
+            <th>库存</th>
+            <th>上架时间</th>
+            <th>操作</th>
+        </tr>
+        {% for product in products %}
+        <tr>
+            <td>{{ product.0 }}</td>
+            <td>{{ product.1 }}</td>
+            <td>{{ product.2 }}</td>
+            <td>{{ product.3 }}</td>
+            <td>{{ product.4 }}</td>
+            <td>{{ product.5 }}</td>
+            <td class="action-buttons">
+                <a href="{% url 'modify_product' %}?product_id={{ product.0 }}">修改</a>
+                <a href="{% url 'delete_product' product.0 %}">删除</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\list_reviews.html =====
+<!-- backend_manage/templates/backend_manage/list_reviews.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}用户评论管理{% endblock %}
+
+{% block content %}
+    <h2>用户评论管理</h2>
+    
+    <h3>查询评论</h3>
+    <form method="get">
+        {{ form.as_p }}
+        <button type="submit">搜索</button>
+    </form>
+    
+    <h3>评论列表</h3>
+    <table>
+        <tr>
+            <th>评论ID</th>
+            <th>商品名称</th>
+            <th>用户名</th>
+            <th>评分</th>
+            <th>评论内容</th>
+            <th>评论时间</th>
+        </tr>
+        {% for review in reviews %}
+        <tr>
+            <td>{{ review.0 }}</td>
+            <td>{{ review.1 }}</td>
+            <td>{{ review.2 }}</td>
+            <td>{{ review.3 }}</td>
+            <td>{{ review.4 }}</td>
+            <td>{{ review.5 }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\manage.html =====
+<!-- backend_manage/templates/backend_manage/manage.html -->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>商家管理系统</title>
+    <!-- 保持现有样式 -->
+</head>
+<body>
+    <!-- 现有内容 -->
+
+    <div class="nav-menu">
+        <a href="{% url 'manage_dashboard' %}">后台管理系统</a>
+        <!-- 其他链接 -->
+    </div>
+
+    <!-- 现有内容 -->
+</body>
+</html>
+
+
+===== ./backend_manage\templates\backend_manage\manage_dashboard.html =====
+<!-- backend_manage/templates/backend_manage/manage_dashboard.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}后台管理系统{% endblock %}
+
+{% block content %}
+    <h1>欢迎来到后台管理系统</h1>
+    <p>请选择左侧的菜单进行操作。</p>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\modify_product.html =====
+<!-- modify_product.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}修改商品信息{% endblock %}
+
+{% block content %}
+    <h2>修改商品信息</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">提交修改</button>
+    </form>
+    <a href="{% url 'list_products' %}">返回商品列表</a>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\query_orders_by_product.html =====
+<!-- backend_manage/templates/backend_manage/query_orders_by_product.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}按商品查询订单{% endblock %}
+
+{% block content %}
+    <h2>商品ID: {{ product_id }} 的订单</h2>
+    <table>
+        <tr>
+            <th>订单ID</th>
+            <th>创建时间</th>
+            <th>订单状态</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.0 }}</td>
+            <td>{{ order.1 }}</td>
+            <td>{{ order.2 }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="{% url 'list_orders' %}">返回订单列表</a>
+{% endblock %}
+
+
+===== ./backend_manage\templates\backend_manage\track_order.html =====
+<!-- backend_manage/templates/backend_manage/track_order.html -->
+{% extends 'backend_manage/base.html' %}
+
+{% block title %}订单物流信息{% endblock %}
+
+{% block content %}
+    <h2>订单物流信息</h2>
+    <p><strong>订单ID：</strong> {{ order_id }}</p>
+    <p><strong>承运人：</strong> {{ carrier }}</p>
+    <p><strong>追踪号码：</strong> {{ tracking_number }}</p>
+    <p><strong>物流状态：</strong> {{ status }}</p>
+    <p><strong>更新时间：</strong> {{ updated_at }}</p>
+    <a href="{% url 'list_orders' %}">返回订单列表</a>
+{% endblock %}
+
+

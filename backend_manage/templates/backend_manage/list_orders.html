@@ -3,11 +3,8 @@
 
 {% block title %}订单管理{% endblock %}
 
-{% block content %}
-    <h2>订单管理</h2>
-    <a href="{% url 'assign_logistics' %}">分配物流</a>
-    
-    <h3>查询订单</h3>
+{% block content %}    
+    <h2>查询订单</h2>
     <form method="get">
         {{ form.as_p }}
         <button type="submit">搜索</button>
@@ -32,8 +29,11 @@
             <td>{{ order.4 }}</td>
             <td class="action-buttons">
                 <a href="{% url 'track_order' order.0 %}">查看物流</a>
-                <a href="{% url 'query_orders_by_product' product_id=order.0 %}">按商品查询</a>
+                {% if order.2 == 'pending' %}  <!-- 只在订单状态为 'pending' 时显示 -->
+                    <a href="{% url 'assign_logistics' %}?order_id={{ order.0 }}">分配物流</a>
+                {% endif %}
             </td>
+            
         </tr>
         {% endfor %}
     </table>
