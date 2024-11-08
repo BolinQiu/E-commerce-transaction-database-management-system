@@ -87,7 +87,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME':  'shopping_management',
         'USER': 'root',
-        'PASSWORD': 'hjmmysql2003',
+        'PASSWORD': 'root',
         'HOST': '127.0.0.1',
         'PORT': 3306
      }
