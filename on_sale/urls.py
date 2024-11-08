@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/profile/', views.get_profile, name='get_profile'),
     path('get_order_items/', views.get_order_items, name='get_order_items'),
     path('submit_review/', views.submit_review, name='submit_review'),
+    path('api/reviews/', views.get_reviews, name='get_reviews'),  # 新增
 ]
 
 

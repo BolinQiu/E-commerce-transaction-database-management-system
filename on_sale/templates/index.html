@@ -115,13 +115,14 @@
 
     <!-- 货架 -->
     <div id="shelf" class="tab-content">
+                    <!-- 搜索框 -->
+                    <div class="search-box">
+                        <input type="text" id="search-name" placeholder="商品名称">
+                        <input type="text" id="search-description" placeholder="商品描述">
+                        <button onclick="searchProducts()">搜索</button>
+                    </div>
         <div class="content-area">
-            <!-- 搜索框 -->
-            <div class="search-box">
-                <input type="text" id="search-name" placeholder="商品名称">
-                <input type="text" id="search-description" placeholder="商品描述">
-                <button onclick="searchProducts()">搜索</button>
-            </div>
+
 
             <!-- 商品展示区 -->
             <div class="product-grid" id="products-container">
@@ -130,7 +131,7 @@
 
             <!-- 购物车总结 -->
             <div class="cart-summary">
-                <h3>购物车</h3>
+                <label>购物车</label>
                 <div id="cart-items"></div>
                 <button class="checkout" onclick="checkout()">结账</button>
                 <button onclick="clearCart()">清空购物车</button>
@@ -138,50 +139,48 @@
         </div>
     </div>
 
-    <!-- 我购买的 -->
-    <div id="purchases" class="tab-content">
-        <div class="content-area">
-            <h2>我的购买</h2>
-            <table id="purchases-table" border="1" cellspacing="0" cellpadding="5">
-                <tr>
-                    <th>订单ID</th>
-                    <th>总金额</th>
-                    <th>状态</th>
-                    <th>地址</th>
-                    <th>电话</th>
-                    <th>时间</th>
-                    <th>订单项</th>
-                </tr>
-                <!-- 订单数据将在这里动态插入 -->
-            </table>
-        </div>
+<!-- 我购买的 -->
+<div id="purchases" class="tab-content">
+    <div class="content-area">
+        <h2>我的购买</h2>
+        <table id="purchases-table" border="1" cellspacing="0" cellpadding="5">
+            <tr>
+                <th>订单ID</th>
+                <th>总金额</th>
+                <th>状态</th>
+                <th>地址</th>
+                <th>电话</th>
+                <th>时间</th>
+                <th>订单项</th>
+                <th>操作</th> <!-- 新增操作列 -->
+            </tr>
+            <!-- 订单数据将在这里动态插入 -->
+        </table>
+    </div>
 
-        <div class="content-area">
-            
-    
-            <!-- 评价模态框 -->
-            <div id="review-modal" style="display: none;">
-                <h2>评价商品</h2>
-                <form id="review-form">
-                  
-                    <input type="hidden" name="order_id" id="order-id">
-                    <label for="product">选择商品：</label>
-                    <select name="product_id" id="product-id">
-                        <!-- 商品列表将在JS中填充 -->
-                    </select>
-                    <br>
-                    <label for="rating">评分（1-5）：</label>
-                    <input type="number" name="rating" id="rating" min="1" max="5" required>
-                    <br>
-                    <label for="content">评价内容：</label>
-                    <textarea name="content" id="content" required></textarea>
-                    <br>
-                    <button type="submit">提交评价</button>
-                    <button type="button" onclick="closeReviewModal()">取消</button>
-                </form>
-            </div>
+    <div class="content-area">
+        <!-- 评价模态框 -->
+        <div id="review-modal" style="display: none;">
+            <h2>评价商品</h2>
+            <form id="review-form">
+                <input type="hidden" name="order_id" id="order-id">
+                <label for="product">选择商品：</label>
+                <select name="product_id" id="product-id">
+                    <!-- 商品列表将在JS中填充 -->
+                </select>
+                <br>
+                <label for="rating">评分（1-5）：</label>
+                <input type="number" name="rating" id="rating" min="1" max="5" required>
+                <br>
+                <label for="content">评价内容：</label>
+                <textarea name="comment" id="comment" required></textarea>
+                <br>
+                <button type="submit">提交评价</button>
+                <button type="button" onclick="closeReviewModal()">取消</button>
+            </form>
         </div>
     </div>
+</div>
 
     <!-- 我的评价 -->
     <div id="reviews" class="tab-content">
@@ -231,106 +230,121 @@
 </div>
 
 
+
     <script>
-
-// 打开评价弹窗
-function openReviewModal(orderId) {
-    document.getElementById('order-id').value = orderId;
-    // 获取该订单的商品列表
-    fetch(`/get_order_items/?order_id=${orderId}`)
-        .then(response => response.json())
-        .then(data => {
-            const productSelect = document.getElementById('product-id');
-            productSelect.innerHTML = '';
-            data.items.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.product_id;
-                option.text = item.product_name;
-                productSelect.appendChild(option);
-            });
-            document.getElementById('review-modal').style.display = 'block';
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('获取订单商品列表失败');
-        });
-}
+        // 打开评价弹窗
+        function openReviewModal(orderId) {
+            document.getElementById('order-id').value = orderId;
+            // 获取该订单的商品列表
+            fetch(`/get_order_items/?order_id=${orderId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const productSelect = document.getElementById('product-id');
+                    productSelect.innerHTML = '';
+                    data.items.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.product__product_id; // 根据返回的数据字段调整
+                        option.text = item.product__product_name;
+                        productSelect.appendChild(option);
+                    });
+                    document.getElementById('review-modal').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('获取订单商品列表失败');
+                });
+        }
     
-    function closeReviewModal() {
-        document.getElementById('review-modal').style.display = 'none';
-    }
-
-// 提交评价表单
-document.getElementById('review-form').addEventListener('submit', function(event) {
-    event.preventDefault();
-    const formData = new FormData(this);
-    // 获取CSRF token
-    const csrftoken = getCookie('csrftoken');
-    fetch('/submit_review/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrftoken,
-        },
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert(`评价失败：${data.error}`);
-        } else {
-            alert('评价成功');
-            closeReviewModal();
-            // 评价成功后可刷新评价列表或订单列表
+        function closeReviewModal() {
+            document.getElementById('review-modal').style.display = 'none';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('提交评价失败');
-    });
-});
-
-
-// 获取CSRF token的函数
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            cookie = cookie.trim();
-            if (cookie.startsWith(name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+    
+        // 提交评价表单
+        document.getElementById('review-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            
+            // 构建JSON数据
+            const data = {
+                order_id: formData.get('order_id'),
+                product_id: formData.get('product_id'),
+                rating: formData.get('rating'),
+                comment: formData.get('comment')
+            };
+            
+            // 获取CSRF token
+            const csrftoken = getCookie('csrftoken');
+            fetch('/submit_review/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(`评价失败：${data.error}`);
+                } else {
+                    alert('评价成功');
+                    closeReviewModal();
+                    // 评价成功后可刷新评价列表或订单列表
+                    loadPurchases(); // 刷新购买记录
+                    loadReviews(); // 刷新评价列表
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('提交评价失败');
+            });
+        });
+    
+        // 获取CSRF token的函数
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
             }
+            return cookieValue;
         }
-    }
-    return cookieValue;
-}
+    
         function showTab(tabId) {
             console.log(`切换到标签页: ${tabId}`); // 调试日志
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
             document.getElementById(tabId).classList.add('active');
-
+    
             if (tabId === 'purchases') {
                 loadPurchases();
             } else if (tabId === 'shelf') {
                 loadProducts();
+            } else if (tabId === 'profile') {
+                loadProfile();
+            } else if (tabId === 'reviews') {
+                loadReviews();
             }
             // 处理其他标签页
-
-           
         }
+    
         // 默认显示货架
         showTab('shelf');
-
-                // 购物车数据
+    
+        // 购物车数据
         let cart = [];
-
+    
         // 加载商品数据
         async function loadProducts() {
             try {
-                const response = await fetch('/api/products');
+                const response = await fetch('/api/products/');
                 if (!response.ok) {
                     throw new Error('网络响应不是OK');
                 }
@@ -341,7 +355,7 @@ function getCookie(name) {
                 alert('无法加载商品数据，请稍后再试。');
             }
         }
-
+    
         // 显示商品
         function displayProducts(products) {
             const container = document.getElementById('products-container');
@@ -356,13 +370,13 @@ function getCookie(name) {
                 </div>
             `).join('');
         }
-
+    
         // 搜索商品
         function searchProducts() {
             const name = document.getElementById('search-name').value.trim();
             const description = document.getElementById('search-description').value.trim();
-
-            fetch(`/api/products/search?name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}`)
+    
+            fetch(`/api/products/search/?name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('网络响应不是OK');
@@ -375,7 +389,7 @@ function getCookie(name) {
                     alert('搜索失败，请稍后再试。');
                 });
         }
-
+    
         // 添加到购物车
         function addToCart(productId) {
             // 假设产品数据已在前端加载，可以通过ID找到产品
@@ -383,19 +397,18 @@ function getCookie(name) {
             const productCard = productElement.parentElement;
             const productName = productCard.querySelector('h3').innerText;
             const productPrice = parseFloat(productCard.querySelector('.price').innerText.replace('￥', ''));
-
+    
             const existingItem = cart.find(item => item.product_id === productId);
-
+    
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
                 cart.push({ product_id: productId, product_name: productName, price: productPrice, quantity: 1 });
             }
-
+    
             updateCartDisplay();
         }
-
-
+    
         // 更新购物车显示
         function updateCartDisplay() {
             const cartItems = document.getElementById('cart-items');
@@ -407,14 +420,13 @@ function getCookie(name) {
                 </div>
             `).join('');
         }
-
+    
         // 从购物车移除
         function removeFromCart(productId) {
             cart = cart.filter(item => item.product_id !== productId);
             updateCartDisplay();
         }
-
-
+    
         // 清空购物车
         function clearCart() {
             if (confirm('确定要清空购物车吗？')) {
@@ -422,34 +434,24 @@ function getCookie(name) {
                 updateCartDisplay();
             }
         }
-
-            // 获取用户名
-         const username = localStorage.getItem('username');
-        // 结账
+    
         // 结账函数
         function checkout() {
             if (cart.length === 0) {
                 alert('购物车是空的！');
                 return;
             }
-
+    
             // 获取CSRF token
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            }
             const csrftoken = getCookie('csrftoken');
-
+    
+            // 获取用户名
+            const username = localStorage.getItem('username');
+            if (!username) {
+                alert('未找到用户名，请重新登录。');
+                return;
+            }
+    
             // 发送订单到服务器，包括username
             fetch('/api/orders/', {
                 method: 'POST',
@@ -478,153 +480,144 @@ function getCookie(name) {
                 alert(`结账失败: ${error.message}`);
             });
         }
-
-        
-
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        const username = localStorage.getItem('username');
-        loadProducts(); // 自动加载商品，否则会显示不出来商品的数据
-        if (username) {
-            // 在页面上显示欢迎信息
-            const welcomeMessage = document.getElementById('welcome-message');
-            if (welcomeMessage) {
-                welcomeMessage.innerText = `欢迎回来, ${username}!`;
-            }
-        }
-    });
-
-        async function loadPurchases() {
-        console.log('调用 loadPurchases 函数'); // 调试日志
-        try {
+    
+        document.addEventListener('DOMContentLoaded', function() {
             const username = localStorage.getItem('username');
-            if (!username) {
-                throw new Error('缺少用户名');
+            loadProducts(); // 自动加载商品，否则会显示不出来商品的数据
+            if (username) {
+                // 在页面上显示欢迎信息
+                const welcomeMessage = document.getElementById('welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.innerText = `欢迎回来, ${username}!`;
+                }
             }
-            console.log(`获取的用户名: ${username}`);
-
-            const response = await fetch(`/api/purchases/?username=${encodeURIComponent(username)}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // 'X-CSRFToken': getCookie('csrftoken')  // GET请求通常不需要CSRF Token
-                },
-                credentials: 'include'  // 如果需要发送cookie，可以保留
-                
+        });
+    
+        async function loadPurchases() {
+            console.log('调用 loadPurchases 函数'); // 调试日志
+            try {
+                const username = localStorage.getItem('username');
+                if (!username) {
+                    throw new Error('缺少用户名');
+                }
+                console.log(`获取的用户名: ${username}`);
+    
+                const response = await fetch(`/api/purchases/?username=${encodeURIComponent(username)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'  // 如果需要发送cookie，可以保留
+                });
+    
+                console.log('发送 GET 请求到 /api/purchases/');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('响应错误:', errorData);
+                    throw new Error(errorData.error || '无法获取购买记录');
+                }
+                const data = await response.json();
+                console.log('获取到的数据:', data);
+                displayPurchases(data.orders);
+            } catch (error) {
+                console.error('加载购买记录失败:', error);
+                alert(`加载购买记录失败: ${error.message}`);
+            }
+        }
+    
+        // 显示购买记录
+        function displayPurchases(orders) {
+            const table = document.getElementById('purchases-table');
+            // 清空表格并重新添加表头
+            table.innerHTML = `
+                <tr>
+                    <th>订单ID</th>
+                    <th>总金额</th>
+                    <th>状态</th>
+                    <th>地址</th>
+                    <th>电话</th>
+                    <th>时间</th>
+                    <th>订单项</th>
+                    <th>操作</th>
+                </tr>
+            `;
+    
+            if (orders.length === 0) {
+                table.innerHTML += `
+                    <tr>
+                        <td colspan="8">尚未有购买记录。</td>
+                    </tr>
+                `;
+                return;
+            }
+    
+            orders.forEach(order => {
+                const orderItems = order.items.map(item => `${item.product__product_name} x ${item.quantity} @ ￥${item.unit_price}`).join('<br>');
+                const reviewButton = order.status === 'delivered' ? `<button onclick="openReviewModal(${order.order_id})">评价</button>` : '';
+                table.innerHTML += `
+                    <tr>
+                        <td>${order.order_id}</td>
+                        <td>￥${order.total_amount}</td>
+                        <td>${order.status}</td>
+                        <td>${order.shipping_address}</td>
+                        <td>${order.shipping_phone}</td>
+                        <td>${order.created_at}</td>
+                        <td>${orderItems}</td>
+                        <td>${reviewButton}</td>
+                    </tr>
+                `;
             });
-
-            console.log('发送 GET 请求到 /api/purchases/');
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('响应错误:', errorData);
-                throw new Error(errorData.error || '无法获取购买记录');
+        }
+    
+        async function loadProfile() {
+            console.log('调用 loadProfile 函数'); // 调试日志
+            try {
+                const username = localStorage.getItem('username');
+                if (!username) {
+                    throw new Error('缺少用户名');
+                }
+                console.log(`获取的用户名: ${username}`);
+                const response = await fetch(`/api/profile/?username=${encodeURIComponent(username)}`, { // 添加 username 参数
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'  // 如果需要发送cookie，可以保留
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '无法获取个人信息');
+                }
+                const data = await response.json();
+                console.log('获取到的个人信息:', data);
+                populateProfileForm(data.user);
+            } catch (error) {
+                console.error('加载个人信息失败:', error);
+                alert(`加载个人信息失败: ${error.message}`);
             }
-            const data = await response.json();
-            console.log('获取到的数据:', data);
-            displayPurchases(data.orders);
-        } catch (error) {
-            console.error('加载购买记录失败:', error);
-            alert(`加载购买记录失败: ${error.message}`);
         }
-    }
-
-    // 显示购买记录
-    function displayPurchases(orders) {
-        const table = document.getElementById('purchases-table');
-        // 清空表格并重新添加表头
-        table.innerHTML = `
-            <tr>
-                <th>订单ID</th>
-                <th>总金额</th>
-                <th>状态</th>
-                <th>地址</th>
-                <th>电话</th>
-                <th>时间</th>
-                <th>订单项</th>
-            </tr>
-        `;
-
-        if (orders.length === 0) {
-            table.innerHTML += `
-                <tr>
-                    <td colspan="7">尚未有购买记录。</td>
-                </tr>
-            `;
-            return;
-        }
-
-        orders.forEach(order => {
-            const orderItems = order.items.map(item => `${item.product__product_name} x ${item.quantity} @ ￥${item.unit_price}`).join('<br>');
-            table.innerHTML += `
-                <tr>
-                    <td>${order.order_id}</td>
-                    <td>￥${order.total_amount}</td>
-                    <td>${order.status}</td>
-                    <td>${order.shipping_address}</td>
-                    <td>${order.shipping_phone}</td>
-                    <td>${order.created_at}</td>
-                    <td>${orderItems}</td>
-                </tr>
-            `;
-        });
-    }
-
-    // // 页面初始化
-    // document.addEventListener('DOMContentLoaded', function() {
-    //     loadProducts(); // 自动加载商品
-    // });
-
-
-    async function loadProfile() {
-    console.log('调用 loadProfile 函数'); // 调试日志
-    try {
-        const username = localStorage.getItem('username');
-        if (!username) {
-            throw new Error('缺少用户名');
-        }
-        console.log(`获取的用户名: ${username}`);
-        const response = await fetch(`/api/profile/?username=${encodeURIComponent(username)}`, { // 添加 username 参数
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include'  // 如果需要发送cookie，可以保留
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || '无法获取个人信息');
-        }
-        const data = await response.json();
-        console.log('获取到的个人信息:', data);
-        populateProfileForm(data.user);
-    } catch (error) {
-        console.error('加载个人信息失败:', error);
-        alert(`加载个人信息失败: ${error.message}`);
-    }
-}
-
+    
         // 填充表单
         function populateProfileForm(user) {
             document.getElementById('username').value = user.username || '';
-
             document.getElementById('address').value = user.address || '';
             document.getElementById('phone').value = user.phone || '';
         }
-
+    
         async function saveProfile() {
             try {
                 const username = document.getElementById('username').value;
                 const address = document.getElementById('address').value;
                 const phone = document.getElementById('phone').value;
-
+    
                 // 获取密码字段
                 const currentPassword = document.getElementById('current_password').value;
                 const newPassword = document.getElementById('new_password').value;
                 const confirmPassword = document.getElementById('confirm_password').value;
-
+    
                 // 构建payload
                 const payload = { username, address, phone };
-
+    
                 // 如果用户填写了新密码，添加到payload
                 if (newPassword || confirmPassword || currentPassword) {
                     if (!currentPassword) {
@@ -637,7 +630,7 @@ function getCookie(name) {
                     payload.new_password = newPassword;
                     payload.confirm_password = confirmPassword;
                 }
-
+    
                 const response = await fetch('/api/profile/update/', {
                     method: 'POST',
                     headers: {
@@ -646,37 +639,99 @@ function getCookie(name) {
                     },
                     body: JSON.stringify(payload)
                 });
-
+    
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || '无法保存个人信息');
                 }
-
+    
                 const data = await response.json();
                 alert('个人信息已保存');
             } catch (error) {
                 alert(`保存个人信息失败: ${error.message}`);
             }
         }
-        // 修改 showTab 函数以加载个人信息
+    
+        // 加载评价记录
+        async function loadReviews() {
+            try {
+                const response = await fetch('/api/reviews/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+    
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '无法获取评价记录');
+                }
+    
+                const data = await response.json();
+                displayReviews(data.reviews);
+            } catch (error) {
+                console.error('加载评价记录失败:', error);
+                alert(`加载评价记录失败: ${error.message}`);
+            }
+        }
+    
+        // 显示评价记录
+        function displayReviews(reviews) {
+            const table = document.getElementById('reviews-table');
+            // 清空表格并重新添加表头
+            table.innerHTML = `
+                <tr>
+                    <th>商品名称</th>
+                    <th>评分</th>
+                    <th>评价内容</th>
+                    <th>评价时间</th>
+                </tr>
+            `;
+    
+            if (reviews.length === 0) {
+                table.innerHTML += `
+                    <tr>
+                        <td colspan="4">尚未有评价记录。</td>
+                    </tr>
+                `;
+                return;
+            }
+    
+            reviews.forEach(review => {
+                table.innerHTML += `
+                    <tr>
+                        <td>${review.product_name}</td>
+                        <td>${review.rating}</td>
+                        <td>${review.comment}</td>
+                        <td>${review.created_at}</td>
+                    </tr>
+                `;
+            });
+        }
+    
+        // 修改 showTab 函数以加载个人信息和评价
         function showTab(tabId) {
             console.log(`切换到标签页: ${tabId}`); // 调试日志
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
             document.getElementById(tabId).classList.add('active');
-
+    
             if (tabId === 'purchases') {
                 loadPurchases();
             } else if (tabId === 'shelf') {
                 loadProducts();
             } else if (tabId === 'profile') {
                 loadProfile();
+            } else if (tabId === 'reviews') {
+                loadReviews();
             }
             // 处理其他标签页
         }
-
+    
     </script>
+    
 
 </body>
 </html>

@@ -287,58 +287,24 @@ from .models import Order, OrderItem, Review
 
 def get_order_items(request):
     order_id = request.GET.get('order_id')
-    try:
-        order = Order.objects.get(order_id=order_id, user_id=request.session['user_id'])
-        if order.status != 'delivered':
-            return JsonResponse({'error': '订单未送达，无法评价'}, status=400)
-        items = OrderItem.objects.filter(order=order)
-        items_data = [
-            {
-                'product_id': item.product.product_id,
-                'product_name': item.product.product_name,
-            }
-            for item in items
-        ]
-        return JsonResponse({'items': items_data})
-    except Order.DoesNotExist:
-        return JsonResponse({'error': '订单不存在'}, status=404)
-
-def submit_review(request):
-    user = request.user
-    order_id = request.POST.get('order_id')
-    product_id = request.POST.get('product_id')
-    rating = request.POST.get('rating')
-    content = request.POST.get('content')
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return JsonResponse({'error': '未认证用户'}, status=401)
     
     try:
+        user = User.objects.get(user_id=user_id)
         order = Order.objects.get(order_id=order_id, user=user)
         if order.status != 'delivered':
             return JsonResponse({'error': '订单未送达，无法评价'}, status=400)
         
-        # 检查用户是否购买了该商品
-        if not OrderItem.objects.filter(order=order, product_id=product_id).exists():
-            return JsonResponse({'error': '你未购买该商品，无法评价'}, status=400)
-        
-        # 检查是否已经评价过
-        if Review.objects.filter(order=order, product_id=product_id, user=user).exists():
-            return JsonResponse({'error': '你已评价过该商品'}, status=400)
-        
-        # 创建评价
-        product = Product.objects.get(product_id=product_id)
-        Review.objects.create(
-            user=user,
-            product=product,
-            rating=rating,
-            comment=content,
-            order=order,
-        )
-        return JsonResponse({'message': '评价成功'})
+        items = OrderItem.objects.filter(order=order).values('product__product_id', 'product__product_name', 'quantity', 'unit_price')
+        return JsonResponse({'items': list(items)}, status=200)
     except Order.DoesNotExist:
         return JsonResponse({'error': '订单不存在'}, status=404)
-    except Product.DoesNotExist:
-        return JsonResponse({'error': '商品不存在'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
 
 def review_page(request, order_id):
     try:
@@ -349,3 +315,87 @@ def review_page(request, order_id):
         return render(request, 'review.html', {'order_id': order_id, 'order_items': order_items})
     except Order.DoesNotExist:
         return JsonResponse({'error': '订单不存在'}, status=404)
+    
+
+def submit_review(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': '仅支持POST请求'}, status=405)
+    
+    try:
+        user_id = request.session.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': '未认证用户'}, status=401)
+        
+        user = User.objects.get(user_id=user_id)
+        
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        product_id = data.get('product_id')
+        rating = data.get('rating')
+        comment = data.get('comment', '')
+        
+        # 验证必要参数
+        if not all([order_id, product_id, rating]):
+            return JsonResponse({'error': '缺少必要参数'}, status=400)
+        
+        # 验证评分范围
+        if not (1 <= int(rating) <= 5):
+            return JsonResponse({'error': '评分必须在1到5之间'}, status=400)
+        
+        # 验证订单是否存在且属于当前用户
+        try:
+            order = Order.objects.get(order_id=order_id, user=user)
+        except Order.DoesNotExist:
+            return JsonResponse({'error': '订单不存在或不属于当前用户'}, status=404)
+        
+        # 验证订单状态是否已送达
+        if order.status != 'delivered':
+            return JsonResponse({'error': '订单未送达，无法评价'}, status=400)
+        
+        # 验证该订单中是否包含该商品
+        try:
+            order_item = OrderItem.objects.get(order=order, product_id=product_id)
+        except OrderItem.DoesNotExist:
+            return JsonResponse({'error': '该订单中不存在该商品'}, status=404)
+        
+        # 检查用户是否已经评价过该商品
+        if Review.objects.filter(user=user, product_id=product_id).exists():
+            return JsonResponse({'error': '你已评价过该商品'}, status=400)
+        
+        # 创建评价
+        Review.objects.create(
+            user=user,
+            product_id=product_id,
+            rating=rating,
+            comment=comment
+        )
+        
+        return JsonResponse({'message': '评价成功'}, status=201)
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'error': '无效的JSON数据'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+def get_reviews(request):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return JsonResponse({'error': '未认证用户'}, status=401)
+    
+    try:
+        user = User.objects.get(user_id=user_id)
+        reviews = Review.objects.filter(user=user).select_related('product').order_by('-created_at')
+        reviews_data = [
+            {
+                'product_name': review.product.product_name,
+                'rating': review.rating,
+                'comment': review.comment,
+                'created_at': review.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            for review in reviews
+        ]
+        return JsonResponse({'reviews': reviews_data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
