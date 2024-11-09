@@ -17,7 +17,7 @@
     <h3>商品列表</h3>
     <table>
         <tr>
-            <th>商品ID</th>
+            <!-- Remove 商品ID header -->
             <th>商品名称</th>
             <th>描述</th>
             <th>单价</th>
@@ -27,12 +27,12 @@
         </tr>
         {% for product in products %}
         <tr>
-            <td>{{ product.0 }}</td>
-            <td>{{ product.1 }}</td>
-            <td>{{ product.2 }}</td>
-            <td>{{ product.3 }}</td>
-            <td>{{ product.4 }}</td>
-            <td>{{ product.5 }}</td>
+            <!-- Remove 商品ID data cell -->
+            <td>{{ product.1 }}</td>  <!-- Product Name -->
+            <td>{{ product.2 }}</td>  <!-- Description -->
+            <td>{{ product.3 }}</td>  <!-- Price -->
+            <td>{{ product.4 }}</td>  <!-- Stock -->
+            <td>{{ product.5 }}</td>  <!-- Created At -->
             <td class="action-buttons">
                 <a href="{% url 'modify_product' %}?product_id={{ product.0 }}">修改</a>
                 <a href="{% url 'delete_product' product.0 %}">删除</a>

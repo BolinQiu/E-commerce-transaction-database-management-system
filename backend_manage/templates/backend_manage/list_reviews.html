@@ -15,7 +15,7 @@
     <h3>评论列表</h3>
     <table>
         <tr>
-            <th>评论ID</th>
+            <!-- Remove 评论ID header -->
             <th>商品名称</th>
             <th>用户名</th>
             <th>评分</th>
@@ -24,12 +24,12 @@
         </tr>
         {% for review in reviews %}
         <tr>
-            <td>{{ review.0 }}</td>
-            <td>{{ review.1 }}</td>
-            <td>{{ review.2 }}</td>
-            <td>{{ review.3 }}</td>
-            <td>{{ review.4 }}</td>
-            <td>{{ review.5 }}</td>
+            <!-- Remove 评论ID data cell -->
+            <td>{{ review.1 }}</td>  <!-- Product Name -->
+            <td>{{ review.2 }}</td>  <!-- Username -->
+            <td>{{ review.3 }}</td>  <!-- Rating -->
+            <td>{{ review.4 }}</td>  <!-- Comment -->
+            <td>{{ review.5 }}</td>  <!-- Created At -->
         </tr>
         {% endfor %}
     </table>

@@ -14,7 +14,7 @@ class AddProductForm(forms.Form):
     stock = forms.IntegerField(label='库存数量')
 
 class AddStockForm(forms.Form):
-    product_id = forms.IntegerField(label='商品ID')
+    product_name = forms.CharField(max_length=100, label='商品名称')  # Change to product name
     additional_stock = forms.IntegerField(label='增加库存数量')
 
 class AssignLogisticsForm(forms.Form):

@@ -114,26 +114,33 @@ def add_product(request):
         form = AddProductForm()
     return render(request, 'backend_manage/add_product.html', {'form': form})
 
+
 def add_stock(request):
     """
-    为现有商品添加库存
+    Adds stock to an existing product by looking up the product by name.
     """
     if request.method == 'POST':
         form = AddStockForm(request.POST)
         if form.is_valid():
-            product_id = form.cleaned_data['product_id']
+            product_name = form.cleaned_data['product_name']
             additional_stock = form.cleaned_data['additional_stock']
             with connection.cursor() as cursor:
-                sql = "UPDATE products SET stock = stock + %s WHERE product_id = %s"
-                cursor.execute(sql, [additional_stock, product_id])
-                if cursor.rowcount == 0:
-                    messages.error(request, "未找到对应的商品ID。")
-                else:
+                # Fetch the product_id based on product_name
+                cursor.execute("SELECT product_id FROM products WHERE product_name = %s", [product_name])
+                result = cursor.fetchone()
+                
+                if result:
+                    product_id = result[0]
+                    # Update the stock
+                    cursor.execute("UPDATE products SET stock = stock + %s WHERE product_id = %s", [additional_stock, product_id])
                     messages.success(request, "库存已更新。")
+                else:
+                    messages.error(request, "未找到对应的商品名称。")
             return redirect('list_products')
     else:
         form = AddStockForm()
     return render(request, 'backend_manage/add_stock.html', {'form': form})
+
 
 def delete_product(request, product_id):
     with connection.cursor() as cursor:
@@ -207,9 +214,10 @@ def generate_tracking_number(order_id):
     tracking_number = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=8))
     return tracking_number
 
+
 def assign_logistics(request):
     """
-    为订单分配物流承运人和追踪号码
+    Assign logistics carrier and tracking number to an order, and update the order status to 'delivered'.
     """
     order_id = request.GET.get('order_id')
     if request.method == 'POST':
@@ -218,35 +226,38 @@ def assign_logistics(request):
             carrier = form.cleaned_data['carrier']
             tracking_number = generate_tracking_number(order_id)
             with connection.cursor() as cursor:
-                # 检查订单是否存在且状态为 'pending'
-                check_sql = "SELECT status FROM orders WHERE order_id = %s"
-                cursor.execute(check_sql, [order_id])
-                result = cursor.fetchone()
-                if not result:
-                    messages.error(request, "未找到对应的订单ID。")
-                    return redirect('list_orders')
+                # Check if an entry already exists in the logistics table for the order_id
+                check_logistics_sql = "SELECT COUNT(*) FROM logistics WHERE order_id = %s"
+                cursor.execute(check_logistics_sql, [order_id])
+                logistics_count = cursor.fetchone()[0]
                 
-                status = result[0]
-                if status != 'pending':
-                    messages.error(request, "只有待处理的订单可以分配物流信息。")
-                    return redirect('list_orders')
+                if logistics_count > 0:
+                    # Update existing logistics entry
+                    update_logistics_sql = """
+                        UPDATE logistics SET carrier = %s, tracking_number = %s, status = 'delivered', updated_at = NOW()
+                        WHERE order_id = %s
+                    """
+                    cursor.execute(update_logistics_sql, [carrier, tracking_number, order_id])
+                    messages.success(request, "物流信息已更新。")
+                else:
+                    # Insert new logistics entry if it doesn't exist
+                    insert_logistics_sql = """
+                        INSERT INTO logistics (order_id, carrier, tracking_number, status, updated_at)
+                        VALUES (%s, %s, %s, 'delivered', NOW())
+                    """
+                    cursor.execute(insert_logistics_sql, [order_id, carrier, tracking_number])
+                    messages.success(request, "物流信息已分配并生成物流记录。")
+
+                # Update the order status to 'delivered'
+                update_order_status_sql = "UPDATE orders SET status = 'delivered' WHERE order_id = %s"
+                cursor.execute(update_order_status_sql, [order_id])
                 
-                # 更新订单状态为 'shipped' 并插入物流信息
-                update_order_sql = "UPDATE orders SET status = 'delivered' WHERE order_id = %s"
-                cursor.execute(update_order_sql, [order_id])
-                
-                insert_logistics_sql = """
-                    INSERT INTO logistics (order_id, carrier, tracking_number, status, updated_at)
-                    VALUES (%s, %s, %s, 'delivered', NOW())
-                """
-                cursor.execute(insert_logistics_sql, [order_id, carrier, tracking_number])
-                
-                messages.success(request, "物流信息已分配并生成物流记录。")
             return redirect('list_orders')
     else:
         initial_data = {'order_id': order_id, 'tracking_number': generate_tracking_number(order_id)}
         form = AssignLogisticsForm(initial=initial_data)
     return render(request, 'backend_manage/assign_logistics.html', {'form': form})
+
 
 
 def track_order(request, order_id):
