@@ -320,12 +320,7 @@ def get_purchases(request):
                     'created_at': order_data['created_at'].strftime('%Y-%m-%d %H:%M:%S'),
                     'items': items_list
                 })
-        print(orders_list)
-        for iteml in orders_list:
-            for item_temp in iteml['items']:
-                item_temp['product__product_name'] = item_temp['product_name']
-                
-            
+
         return JsonResponse({'orders': orders_list}, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
