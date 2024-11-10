@@ -2,23 +2,31 @@
 <html lang="zh-cn">
 <head>
     <meta charset="UTF-8">
-    <title>登录</title>
+    <title>商家后台登录</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'login.css' %}">  <!-- 引入CSS文件 -->
+    <script>
+        // 弹窗提示功能
+        function showAlert(message) {
+            alert(message);
+        }
+    </script>
 </head>
 <body>
     <div class="container">  <!-- 添加container -->
-        <h2>登录</h2>
-        <form id="login-form" method="post" action="{% url 'login' %}">
+        <h2>商家后台登录</h2>
+        <form id="login-form" method="post" action="{% url 'backend_login' %}">
             {% csrf_token %}
-            <label for="username">用户名:</label>
-            <input type="text" id="username" name="username" required>
             <label for="password">密码:</label>
             <input type="password" id="password" name="password" required>
             <button type="submit">登录</button>
         </form>
-        <p>没有账号？<a href="{% url 'register' %}">注册</a></p>
-        <p><a href="{% url 'backend_login' %}">我是商家</a></p>
     </div>
+    
+    {% if error_message %}
+        <script>
+            showAlert("{{ error_message|escapejs }}");  // 显示弹窗
+        </script>
+    {% endif %}
 </body>
 </html>

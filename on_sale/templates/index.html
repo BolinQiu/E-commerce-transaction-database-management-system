@@ -9,7 +9,7 @@
             padding: 15px;
         }
         .content-area {
-            margin: 20px;
+            margin: 10px;
         }
         .tab-content {
             display: none;
@@ -39,8 +39,8 @@
         /* 货架样式 */
         .content-area {
             display: flex;
-            padding: 20px;
-            gap: 20px;
+            padding: 10px;
+            gap: 10px;
         }
 
         .search-box {
@@ -106,9 +106,13 @@
         <button onclick="showTab('purchases')">我购买的</button>
         <button onclick="showTab('reviews')">我的评价</button>
         <button onclick="showTab('profile')">我的信息</button>
+        
+        <!-- 登出按钮 -->
+        <form action="{% url 'logout' %}" method="post" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit">退出登录</button>
+        </form>
     </div>
-
-        <a href="{% url 'logout' %}">登出</a>
 
         <!-- 欢迎信息容器 -->
         <div id="welcome-message"></div>
@@ -143,6 +147,8 @@
 <div id="purchases" class="tab-content">
     <div class="content-area">
         <h2>我的购买</h2>
+    </div>
+    <div class="content-area">
         <table id="purchases-table" border="1" cellspacing="0" cellpadding="5">
             <tr>
                 <th>订单ID</th>
@@ -182,21 +188,23 @@
     </div>
 </div>
 
-    <!-- 我的评价 -->
-    <div id="reviews" class="tab-content">
-        <div class="content-area">
-            <h2>我的评价</h2>
-            <table id="reviews-table">
-                <tr>
-                    <th>商品名称</th>
-                    <th>评分</th>
-                    <th>评价内容</th>
-                    <th>评价时间</th>
-                </tr>
-            </table>
-        </div>
+<!-- 我的评价 -->
+<div id="reviews" class="tab-content">
+    <div class="content-area">
+        <h2>我的评价</h2> <!-- 保持标题在第一行 -->
     </div>
-
+    <div class="content-area"> <!-- 用另一个 div 包裹表格以放在第二行 -->
+        <table id="reviews-table">
+            <tr>
+                <th>商品名称</th>
+                <th>评分</th>
+                <th>评价内容</th>
+                <th>评价时间</th>
+            </tr>
+            <!-- 这里可以添加评价数据行 -->
+        </table>
+    </div>
+</div>
 
 
 <!-- 我的信息 -->

@@ -3,57 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <title>注册</title>
-    <style>
-        .messages {
-            margin: 10px 0;
-            padding: 10px;
-        }
-        .alert {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-        }
-        .alert-error {
-            background-color: #f2dede;
-            border: 1px solid #ebccd1;
-            color: #a94442;
-        }
-        .alert-success {
-            background-color: #dff0d8;
-            border: 1px solid #d6e9c6;
-            color: #3c763d;
-        }
-    </style>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'register.css' %}">  <!-- 引入CSS文件 -->
 </head>
 <body>
-    <h2>注册</h2>
-    
-    {% if messages %}
-    <div class="messages">
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+    <div class="container">
+        <h2>注册</h2>
 
-    <form method="post" action="{% url 'register' %}">
-        {% csrf_token %}
-        <label for="username">用户名:</label>
-        <input type="text" id="username" name="username" required>
-        <br>
-        <label for="password">密码:</label>
-        <input type="password" id="password" name="password" required>
-        <br>
-        <label for="address">寄件地址:</label>
-        <input type="text" id="address" name="address" required>
-        <br>
-        <label for="phone">电话:</label>
-        <input type="text" id="phone" name="phone" required>
-        <br>
-        <button type="submit">注册</button>
-    </form>
-    <p>已有账号？<a href="{% url 'login' %}">登录</a></p>
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+            <label for="username">用户名:</label>
+            <input type="text" id="username" name="username" required>
+            <label for="password">密码:</label>
+            <input type="password" id="password" name="password" required>
+            <label for="address">寄件地址:</label>
+            <input type="text" id="address" name="address" required>
+            <label for="phone">电话:</label>
+            <input type="text" id="phone" name="phone" required>
+            <button type="submit">注册</button>
+        </form>
+        <p>已有账号？<a href="{% url 'login' %}">登录</a></p>
+    </div>
 </body>
 </html>

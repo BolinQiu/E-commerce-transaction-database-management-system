@@ -106,6 +106,25 @@ def register_view(request):
                 
     return render(request, 'register.html')
 
+def backend_login(request):
+    error_message = None  # 初始化错误消息
+
+    if request.method == 'POST':
+        password = request.POST.get('password')
+
+        # 检查密码是否为空
+        if not password:
+            error_message = '密码不能为空'
+        elif password == '123':
+            # 登录成功，使用会话存储信息（可选）
+            request.session['is_authenticated'] = True
+            return redirect('/backend/products')  # 跳转到 /backend
+        else:
+            error_message = '密码错误'
+
+    return render(request, 'backend_login.html', {'error_message': error_message})
+
+
 # views.py
 from django.http import JsonResponse
 from .models import Product

@@ -8,6 +8,7 @@ urlpatterns = [
     path('on_sale/', views.app_index, name='on_sale'),
     path('', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
+    path('backend_login', views.backend_login, name='backend_login'),
     path('api/products/', views.get_products, name='get_products'),
     path('api/products/search/', views.search_products, name='search_products'),
          # API路径
