@@ -157,6 +157,7 @@ cython_debug/
 # Others
 all_code_files.txt
 Prompt.py
+generate_data.py
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
